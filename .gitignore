@@ -25,3 +25,24 @@ Thumbs.db
 
 # YoYo AI version control directory
 .yoyo/
+
+# WhatsApp Engine
+whatsapp-engine/node_modules/
+whatsapp-engine/uploads/
+whatsapp-engine/*.zip
+whatsapp-engine/package-lock.json
+whatsapp-engine/package-optimized.json
+whatsapp-engine/optimization-config.js
+whatsapp-engine/server-optimized.js
+whatsapp-engine/*.sh
+whatsapp-engine/*.bat
+
+# Deployment
+deployment/
+.zeabur/
+
+# Temporary files
+*.tmp
+*.temp
+.env_bc
+check_table.php
