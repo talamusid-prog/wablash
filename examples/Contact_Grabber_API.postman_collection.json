@@ -1,0 +1,307 @@
+{
+	"info": {
+		"_postman_id": "wa-blast-contact-grabber",
+		"name": "WA Blast - Contact Grabber API",
+		"description": "Collection untuk testing API grabber kontak WhatsApp",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Contact Grabber",
+			"item": [
+				{
+					"name": "Grab Group Contacts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions/{{session_id}}/grab-groups",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions",
+								"{{session_id}}",
+								"grab-groups"
+							]
+						},
+						"description": "Mengambil semua kontak grup dari WhatsApp session yang terhubung"
+					},
+					"response": []
+				},
+				{
+					"name": "Grab Individual Contacts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions/{{session_id}}/grab-contacts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions",
+								"{{session_id}}",
+								"grab-contacts"
+							]
+						},
+						"description": "Mengambil semua kontak individual dari WhatsApp session yang terhubung"
+					},
+					"response": []
+				},
+				{
+					"name": "Grab All Contacts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions/{{session_id}}/grab-all",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions",
+								"{{session_id}}",
+								"grab-all"
+							]
+						},
+						"description": "Mengambil semua kontak (grup dan individual) dari WhatsApp session yang terhubung"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Saved Contacts - All",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions/{{session_id}}/contacts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions",
+								"{{session_id}}",
+								"contacts"
+							]
+						},
+						"description": "Mengambil semua kontak yang sudah disimpan di database"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Saved Contacts - Individual",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions/{{session_id}}/contacts?type=individual",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions",
+								"{{session_id}}",
+								"contacts"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "individual"
+								}
+							]
+						},
+						"description": "Mengambil hanya kontak individual yang sudah disimpan di database"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Saved Contacts - Groups",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions/{{session_id}}/contacts?type=group",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions",
+								"{{session_id}}",
+								"contacts"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "group"
+								}
+							]
+						},
+						"description": "Mengambil hanya kontak grup yang sudah disimpan di database"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Saved Contacts",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions/{{session_id}}/contacts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions",
+								"{{session_id}}",
+								"contacts"
+							]
+						},
+						"description": "Menghapus semua kontak yang disimpan untuk session tertentu"
+					},
+					"response": []
+				}
+			],
+			"description": "API untuk grabber kontak WhatsApp"
+		},
+		{
+			"name": "Session Management",
+			"item": [
+				{
+					"name": "Get Session Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions/{{session_id}}/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions",
+								"{{session_id}}",
+								"status"
+							]
+						},
+						"description": "Cek status session WhatsApp (harus 'connected' untuk grabber)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Sessions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/sessions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"sessions"
+							]
+						},
+						"description": "Melihat semua session WhatsApp yang tersedia"
+					},
+					"response": []
+				}
+			],
+			"description": "API untuk manajemen session WhatsApp"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "your-session-uuid-here",
+			"type": "string"
+		}
+	]
+} 

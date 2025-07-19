@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="Phonebook" sheetId="1" r:id="rId1"/>
+  </sheets>
+  <sheetViews>
+    <workbookView xWindow="240" yWindow="15" windowWidth="16095" windowHeight="9660"/>
+  </sheetViews>
+</workbook>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>
+    <row r="1">
+      <c r="A1" t="s">
+        <v>Nama</v>
+      </c>
+      <c r="B1" t="s">
+        <v>Nomor Telepon</v>
+      </c>
+      <c r="C1" t="s">
+        <v>Grup</v>
+      </c>
+      <c r="D1" t="s">
+        <v>Status</v>
+      </c>
+    </row>
+    <row r="2">
+      <c r="A2" t="s">
+        <v>John Doe</v>
+      </c>
+      <c r="B2" t="s">
+        <v>+6281234567890</v>
+      </c>
+      <c r="C2" t="s">
+        <v>Keluarga</v>
+      </c>
+      <c r="D2" t="s">
+        <v>Active</v>
+      </c>
+    </row>
+    <row r="3">
+      <c r="A3" t="s">
+        <v>Jane Smith</v>
+      </c>
+      <c r="B3" t="s">
+        <v>+6282345678901</v>
+      </c>
+      <c r="C3" t="s">
+        <v>Teman</v>
+      </c>
+      <c r="D3" t="s">
+        <v>Active</v>
+      </c>
+    </row>
+    <row r="4">
+      <c r="A4" t="s">
+        <v>Bob Johnson</v>
+      </c>
+      <c r="B4" t="s">
+        <v>+6283456789012</v>
+      </c>
+      <c r="C4" t="s">
+        <v>Kerja</v>
+      </c>
+      <c r="D4" t="s">
+        <v>Active</v>
+      </c>
+    </row>
+    <row r="5">
+      <c r="A5" t="s">
+        <v>Alice Brown</v>
+      </c>
+      <c r="B5" t="s">
+        <v>+6284567890123</v>
+      </c>
+      <c r="C5" t="s">
+        <v>Keluarga</v>
+      </c>
+      <c r="D5" t="s">
+        <v>Inactive</v>
+      </c>
+    </row>
+    <row r="6">
+      <c r="A6" t="s">
+        <v>Charlie Wilson</v>
+      </c>
+      <c r="B6" t="s">
+        <v>+6285678901234</v>
+      </c>
+      <c r="C6" t="s">
+        <v>Teman</v>
+      </c>
+      <c r="D6" t="s">
+        <v>Active</v>
+      </c>
+    </row>
+  </sheetData>
+</worksheet> 
