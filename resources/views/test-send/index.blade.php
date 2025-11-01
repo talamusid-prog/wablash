@@ -429,11 +429,18 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: requestData
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+        .then(async (response) => {
+            let payload = null;
+            try {
+                payload = await response.json();
+            } catch (_) {
+                // ignore JSON parse error
             }
-            return response.json();
+            if (!response.ok) {
+                const msg = (payload && (payload.message || payload.error)) || `HTTP ${response.status}`;
+                throw new Error(msg);
+            }
+            return payload;
         })
         .then(data => {
             console.log('Response data:', data);
@@ -449,7 +456,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error sending message:', error);
-            showError('Terjadi kesalahan saat mengirim pesan: ' + error.message);
+            showError(error.message || 'Terjadi kesalahan saat mengirim pesan');
         })
         .finally(() => {
             sendButton.innerHTML = originalText;

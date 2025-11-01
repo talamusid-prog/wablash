@@ -201,13 +201,23 @@ class WhatsAppController extends Controller
             $responseData = $result['data'];
             $engineData = $responseData['data'] ?? $responseData;
             
-            // Update session status jika valid
-            if (isset($engineData['status'])) {
-                $status = (string) $engineData['status'];
-                // Hanya update jika status valid
-                if (in_array($status, ['connecting', 'connected', 'disconnected', 'error', 'qr_ready'])) {
-                    $whatsAppSession->update(['status' => $status]);
-                }
+            // Update session status jika valid, map 'authenticated' menjadi 'connected'
+            $statusFromEngine = $engineData['status'] ?? null;
+            $resolvedStatus = $statusFromEngine ? strtolower((string) $statusFromEngine) : $whatsAppSession->status;
+            // Normalisasi status dari engine ke status internal (jangan paksa 'authenticated' menjadi 'connected')
+            $map = [
+                'ready' => 'connected',
+                'online' => 'connected',
+                'open' => 'connected',
+                'qrready' => 'qr_ready',
+                'qr_ready' => 'qr_ready',
+                'disconnect' => 'disconnected',
+            ];
+            if (isset($map[$resolvedStatus])) {
+                $resolvedStatus = $map[$resolvedStatus];
+            }
+            if (in_array($resolvedStatus, ['connecting', 'authenticated', 'connected', 'auth_failed', 'disconnected', 'error', 'qr_ready'])) {
+                $whatsAppSession->update(['status' => $resolvedStatus]);
             }
             
             return response()->json([
@@ -216,7 +226,7 @@ class WhatsAppController extends Controller
                     'session_id' => $whatsAppSession->session_id,
                     'qr_code' => $engineData['qrCode'] ?? null,
                     'qrCode' => $engineData['qrCode'] ?? null, // Keep both for compatibility
-                    'status' => $engineData['status'] ?? $whatsAppSession->status
+                    'status' => $resolvedStatus
                 ]
             ]);
             
@@ -533,25 +543,38 @@ class WhatsAppController extends Controller
             
             $responseData = $result['data'];
             
-            // Update session status di database jika berbeda
-            if (isset($responseData['status']) && $responseData['status'] !== $whatsAppSession->status) {
-                $status = (string) $responseData['status'];
-                // Hanya update jika status valid
-                if (in_array($status, ['connecting', 'connected', 'disconnected', 'error', 'qr_ready', 'auth_failed'])) {
-                    $whatsAppSession->update(['status' => $status]);
-                    Log::info('Session status updated', [
-                        'session_id' => $whatsAppSession->session_id,
-                        'old_status' => $whatsAppSession->getOriginal('status'),
-                        'new_status' => $status
-                    ]);
-                }
+            // Tentukan status ter-resolve (map 'authenticated' menjadi 'connected')
+            $statusFromEngine = $responseData['status'] ?? null;
+            $resolvedStatus = $statusFromEngine ? strtolower((string) $statusFromEngine) : $whatsAppSession->status;
+            // Normalisasi status dari engine ke status internal (jangan paksa 'authenticated' menjadi 'connected')
+            $map = [
+                'ready' => 'connected',
+                'online' => 'connected',
+                'open' => 'connected',
+                'qrready' => 'qr_ready',
+                'qr_ready' => 'qr_ready',
+                'disconnect' => 'disconnected',
+            ];
+            if (isset($map[$resolvedStatus])) {
+                $resolvedStatus = $map[$resolvedStatus];
+            }
+
+            // Update session status di database jika berbeda dan valid
+            if ($resolvedStatus !== $whatsAppSession->status && in_array($resolvedStatus, ['connecting', 'authenticated', 'connected', 'disconnected', 'error', 'qr_ready', 'auth_failed'])) {
+                $old = $whatsAppSession->status;
+                $whatsAppSession->update(['status' => $resolvedStatus]);
+                Log::info('Session status updated', [
+                    'session_id' => $whatsAppSession->session_id,
+                    'old_status' => $old,
+                    'new_status' => $resolvedStatus
+                ]);
             }
             
             return response()->json([
                 'success' => true,
                 'data' => [
                     'session_id' => $whatsAppSession->session_id,
-                    'status' => $responseData['status'] ?? $whatsAppSession->status,
+                    'status' => $resolvedStatus,
                     'phone_number' => $responseData['phoneNumber'] ?? $whatsAppSession->phone_number
                 ]
             ]);
@@ -608,16 +631,65 @@ class WhatsAppController extends Controller
         ]);
 
         try {
-            // Check if session is connected
-            if ($whatsAppSession->status !== 'connected') {
-                Log::warning('Session not connected for test send', [
+            // Preflight: cek status real-time dari engine dan sinkronkan
+            $statusResult = $this->whatsappService->getSessionStatus($whatsAppSession->session_id);
+            if (!$statusResult['success']) {
+                $err = $statusResult['error'] ?? 'Unknown error';
+                if (stripos($err, 'Session not found') !== false) {
+                    Log::warning('Session not found in engine. Initiating reconnect', [
+                        'session_id' => $whatsAppSession->session_id,
+                    ]);
+                    // Inisiasi reconnect (fresh) dan fallback create jika perlu
+                    $this->whatsappService->reconnectSession($whatsAppSession->session_id, true);
+                    // Safety: jika tetap tidak ada, coba create new session in engine
+                    try {
+                        $this->whatsappService->createSession(
+                            $whatsAppSession->session_id,
+                            $whatsAppSession->name,
+                            (string)($whatsAppSession->phone_number ?? '')
+                        );
+                    } catch (\Throwable $e) {
+                        // ignore, we will ask user to rescan QR regardless
+                    }
+                    $whatsAppSession->update(['status' => 'connecting']);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Session tidak ditemukan di engine. Reconnect diinisiasi. Silakan scan ulang QR.',
+                    ], 409);
+                }
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mendapatkan status session dari engine: ' . $err,
+                ], 502);
+            }
+            $engineData = $statusResult['data']['data'] ?? $statusResult['data'];
+            $engineStatus = strtolower((string) ($engineData['status'] ?? 'unknown'));
+            // Normalisasi status: JANGAN anggap 'authenticated' sudah connected untuk pengiriman
+            $map = [
+                'ready' => 'connected',
+                'online' => 'connected',
+                'open' => 'connected',
+                'qrready' => 'qr_ready',
+                'qr_ready' => 'qr_ready',
+                'disconnect' => 'disconnected',
+            ];
+            if (isset($map[$engineStatus])) {
+                $engineStatus = $map[$engineStatus];
+            }
+            // Sinkronkan DB jika berbeda
+            if ($engineStatus && $engineStatus !== $whatsAppSession->status && in_array($engineStatus, ['connecting','qr_ready','connected','disconnected','error','auth_failed'])) {
+                $whatsAppSession->update(['status' => $engineStatus]);
+            }
+            // Pastikan terhubung sebelum mengirim
+            if ($engineStatus !== 'connected') {
+                Log::warning('Session not connected for test send (engine)', [
                     'session_id' => $whatsAppSession->session_id,
-                    'status' => $whatsAppSession->status
+                    'engine_status' => $engineStatus
                 ]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Session tidak terhubung. Status: ' . $whatsAppSession->status
-                ], 400);
+                    'message' => 'Session belum terhubung di engine. Status: ' . $engineStatus,
+                ], 409);
             }
 
             // Get message content - for text type, use message field, for media types, use caption or empty string
@@ -662,7 +734,17 @@ class WhatsAppController extends Controller
             ]);
 
             if (!$result['success']) {
-                throw new \Exception($result['error']);
+                $errorMsg = $result['error'] ?? 'Unknown error';
+                $statusCode = 400;
+                if (stripos($errorMsg, 'Invalid phone number') !== false) {
+                    $statusCode = 422; // validation error
+                } elseif (stripos($errorMsg, 'not connected') !== false || stripos($errorMsg, 'Session not found') !== false) {
+                    $statusCode = 409; // conflict with session state
+                }
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMsg,
+                ], $statusCode);
             }
 
             // Create message record
@@ -1071,5 +1153,42 @@ class WhatsAppController extends Controller
                 'message' => 'Gagal menghapus kontak dari database: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Debug: bandingkan status DB vs Engine untuk semua session
+     */
+    public function debugSync(): JsonResponse
+    {
+        $sessions = \App\Models\WhatsAppSession::all();
+        $items = [];
+        foreach ($sessions as $s) {
+            $engine = $this->whatsappService->getSessionStatus($s->session_id);
+            $engineData = $engine['data']['data'] ?? ($engine['data'] ?? []);
+            $raw = strtolower((string)($engineData['status'] ?? 'unknown'));
+            $map = [
+                'ready' => 'connected',
+                'online' => 'connected',
+                'open' => 'connected',
+                'qrready' => 'qr_ready',
+                'qr_ready' => 'qr_ready',
+                'disconnect' => 'disconnected',
+            ];
+            $engineStatus = $map[$raw] ?? $raw;
+            $items[] = [
+                'session_id' => $s->session_id,
+                'name' => $s->name,
+                'db_status' => $s->status,
+                'engine_success' => $engine['success'] ?? null,
+                'engine_status' => $engineStatus,
+                'engine_raw_status' => $raw,
+                'phone_number_db' => $s->phone_number,
+                'phone_number_engine' => $engineData['phoneNumber'] ?? null,
+            ];
+        }
+        return response()->json([
+            'success' => true,
+            'data' => $items
+        ]);
     }
 }

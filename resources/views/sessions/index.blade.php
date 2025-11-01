@@ -351,13 +351,13 @@
                                 </svg>
                                 Terhubung
                             </span>
-                        @elseif($session->status === 'connecting')
-                            <span class="status-badge inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" data-current-status="connecting">
+                        @elseif(in_array($session->status, ['connecting','qr_ready','authenticated']))
+                            <span class="status-badge inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" data-current-status="{{ $session->status }}">
                                 <svg class="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                Menghubungkan
+                                {{ $session->status === 'qr_ready' ? 'QR Ready' : ($session->status === 'authenticated' ? 'Terverifikasi' : 'Menghubungkan') }}
                             </span>
                         @else
                             <span class="status-badge inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800" data-current-status="disconnected">
@@ -1444,7 +1444,7 @@ function closeQRModalAndRefresh() {
         console.log('Polling stopped for session:', currentSessionId);
     }
     
-    // Update status session yang baru terhubung secara real-time
+    // Sinkronkan status session yang baru dengan memanggil API status
     if (currentSessionId) {
         const sessionElement = document.querySelector(`[data-session-id="${currentSessionId}"]`);
         const statusElement = sessionElement?.querySelector('.status-badge');
@@ -1453,25 +1453,34 @@ function closeQRModalAndRefresh() {
         console.log('Status element found:', !!statusElement);
         
         if (statusElement) {
-            // Update status menjadi connected dengan animasi
-            updateSessionStatus(statusElement, 'connected');
-            statusElement.setAttribute('data-current-status', 'connected');
-            console.log('Status updated to connected');
-            
-            // Update stats cards
-            updateStatsCards();
-            console.log('Stats cards updated');
-            
-            // Update tombol aksi
-            updateSessionActions(currentSessionId, 'connected');
-            console.log('Action buttons updated');
-            
-            // Berikan feedback visual yang lebih jelas
-            sessionElement.style.animation = 'session-connected 1s ease-in-out';
-            setTimeout(() => {
-                sessionElement.style.animation = '';
-            }, 1000);
-            console.log('Visual feedback applied');
+            fetch(`/api/sessions/${currentSessionId}/status`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                const newStatus = data?.data?.status || 'connecting';
+                updateSessionStatus(statusElement, newStatus);
+                statusElement.setAttribute('data-current-status', newStatus);
+                console.log('Status updated to', newStatus);
+                
+                // Update stats & tombol aksi
+                updateStatsCards();
+                updateSessionActions(currentSessionId, newStatus);
+                
+                // Feedback visual jika benar-benar connected
+                if (newStatus === 'connected') {
+                    sessionElement.style.animation = 'session-connected 1s ease-in-out';
+                    setTimeout(() => { sessionElement.style.animation = ''; }, 1000);
+                }
+            })
+            .catch(err => {
+                console.error('Failed to sync status after closing QR modal:', err);
+            });
         } else {
             console.error('Status element not found for session:', currentSessionId);
         }
@@ -1482,9 +1491,7 @@ function closeQRModalAndRefresh() {
     // Reset current session ID
     currentSessionId = null;
     
-    // Berikan notifikasi sukses
-    showSuccess('WhatsApp berhasil terhubung! Status telah diperbarui secara otomatis.');
-    console.log('Success notification shown');
+    console.log('Status sync initiated after QR modal close');
 }
 
 // Fungsi untuk update tombol aksi berdasarkan status

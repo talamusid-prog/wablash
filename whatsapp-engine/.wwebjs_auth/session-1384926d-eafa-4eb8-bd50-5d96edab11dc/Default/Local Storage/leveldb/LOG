@@ -1,0 +1,8 @@
+2025/10/31-22:02:30.514 2954 Reusing MANIFEST C:\Users\melis\Herd\wa-blast\whatsapp-engine\.wwebjs_auth\session-1384926d-eafa-4eb8-bd50-5d96edab11dc\Default\Local Storage\leveldb/MANIFEST-000001
+2025/10/31-22:02:30.515 2954 Recovering log #4
+2025/10/31-22:02:30.515 2954 Level-0 table #6: started
+2025/10/31-22:02:30.519 2954 Level-0 table #6: 15035 bytes OK
+2025/10/31-22:02:30.519 2954 Recovering log #6
+2025/10/31-22:02:30.520 2954 Reusing old log C:\Users\melis\Herd\wa-blast\whatsapp-engine\.wwebjs_auth\session-1384926d-eafa-4eb8-bd50-5d96edab11dc\Default\Local Storage\leveldb/000006.log 
+2025/10/31-22:02:30.526 2954 Delete type=0 #4
+2025/10/31-22:02:30.526 2954 Delete type=2 #7

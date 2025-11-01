@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('blast_messages', function (Blueprint $table) {
-            $table->string('attachment_path')->nullable()->after('whatsapp_message_id');
+            if (!Schema::hasColumn('blast_messages', 'attachment_path')) {
+                $table->string('attachment_path')->nullable()->after('whatsapp_message_id');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('blast_messages', function (Blueprint $table) {
-            $table->dropColumn('attachment_path');
+            if (Schema::hasColumn('blast_messages', 'attachment_path')) {
+                $table->dropColumn('attachment_path');
+            }
         });
     }
 };

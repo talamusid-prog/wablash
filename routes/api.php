@@ -61,6 +61,7 @@ Route::prefix('phonebook')->group(function () {
 Route::get('/sessions', [WhatsAppController::class, 'index']);
 Route::get('/sessions/active', [WhatsAppController::class, 'getActiveSessions']);
 Route::post('/sessions', [WhatsAppController::class, 'store']);
+Route::get('/sessions/debug-sync', [WhatsAppController::class, 'debugSync']);
 Route::delete('/sessions/{session_id}', [WhatsAppController::class, 'destroy']);
 Route::post('/sessions/{session_id}/connect', [WhatsAppController::class, 'connect']);
 Route::post('/sessions/{session_id}/reconnect', [WhatsAppController::class, 'reconnect']);
@@ -114,5 +115,8 @@ Route::prefix('v1/integration')->group(function () {
     Route::get('/webhook-config', [IntegrationController::class, 'getWebhookConfig']);
     Route::post('/webhook-config', [IntegrationController::class, 'setWebhookConfig']);
     Route::post('/test-webhook', [IntegrationController::class, 'testWebhook']);
+    
+    // Debug endpoint
+    Route::post('/debug-webhook', [IntegrationController::class, 'debugWebhook']);
 });
 

@@ -9,10 +9,12 @@ export default defineConfig({
         }),
     ],
     server: {
-        host: '0.0.0.0',
-        port: 5173,
+        host: 'localhost',
+        port: 5182,
+        https: false,
         hmr: {
-            host: 'wa-blast.test',
+            host: 'localhost',
+            port: 5182,
         },
     },
 });
