@@ -7,6 +7,8 @@ use App\Models\WhatsAppSession;
 use App\Models\BlastCampaign;
 use App\Models\BlastMessage;
 use App\Models\WhatsAppMessage;
+use App\Services\WhatsAppService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -62,6 +64,43 @@ class DashboardController extends Controller
     public function sessions()
     {
         $sessions = WhatsAppSession::latest()->paginate(10);
+
+        // Debug: bandingkan status DB vs status dari engine untuk halaman ini
+        try {
+            $whatsappService = app(WhatsAppService::class);
+            $debug = [];
+            foreach ($sessions as $session) {
+                try {
+                    $engineResult = $whatsappService->getSessionStatus($session->session_id);
+                    $engineData = $engineResult['data']['data'] ?? ($engineResult['data'] ?? []);
+                    $engineStatus = $engineData['status'] ?? ($engineResult['status'] ?? 'unknown');
+                    $debug[] = [
+                        'session_id' => $session->session_id,
+                        'name' => $session->name,
+                        'db_status' => $session->status,
+                        'engine_success' => $engineResult['success'] ?? null,
+                        'engine_status' => $engineStatus,
+                        'phone_number_db' => $session->phone_number,
+                        'phone_number_engine' => $engineData['phoneNumber'] ?? null,
+                        'created_at' => (string) $session->created_at,
+                    ];
+                } catch (\Throwable $e) {
+                    $debug[] = [
+                        'session_id' => $session->session_id,
+                        'name' => $session->name,
+                        'db_status' => $session->status,
+                        'engine_error' => $e->getMessage(),
+                    ];
+                }
+            }
+            Log::info('Sessions page debug: DB vs Engine status', [
+                'count' => $sessions->count(),
+                'items' => $debug,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Sessions page debug failed', ['error' => $e->getMessage()]);
+        }
+
         return view('sessions.index', compact('sessions'));
     }
 

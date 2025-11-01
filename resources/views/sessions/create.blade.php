@@ -271,8 +271,8 @@
                             </svg>
                         </div>
                         
-                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Sesi Berhasil Dibuat!</h2>
-                        <p class="text-gray-600 mb-6">WhatsApp Anda telah terhubung dan siap digunakan untuk blast pesan</p>
+                        <h2 id="successTitle" class="text-2xl font-bold text-gray-900 mb-2">Sesi Berhasil Dibuat!</h2>
+                        <p id="successSubtitle" class="text-gray-600 mb-6">WhatsApp Anda telah terhubung dan siap digunakan untuk blast pesan</p>
 
                         <div class="bg-gray-50 rounded-lg p-4 mb-6">
                             <div class="text-left">
@@ -280,7 +280,7 @@
                                 <div class="space-y-1 text-sm text-gray-600">
                                     <p><strong>Nama:</strong> <span id="sessionNameDisplay"></span></p>
                                     <p><strong>Nomor:</strong> <span id="sessionPhoneDisplay"></span></p>
-                                    <p><strong>Status:</strong> <span class="text-green-600 font-medium">Terhubung</span></p>
+                                    <p><strong>Status:</strong> <span id="sessionStatusText" class="font-medium text-green-600">Terhubung</span></p>
                                 </div>
                             </div>
                         </div>
@@ -539,7 +539,7 @@ function goBackToStep1() {
     }
 }
 
-function goToStep3() {
+function goToStep3(status = 'connected') {
     currentStep = 3;
     updateStepIndicators();
     document.getElementById('step1-content').classList.add('hidden');
@@ -557,6 +557,31 @@ function goToStep3() {
     const phoneNumber = document.getElementById('phoneNumber').value;
     document.getElementById('sessionNameDisplay').textContent = sessionName;
     document.getElementById('sessionPhoneDisplay').textContent = phoneNumber;
+
+    // Adjust messages based on status
+    const titleEl = document.getElementById('successTitle');
+    const subtitleEl = document.getElementById('successSubtitle');
+    const statusEl = document.getElementById('sessionStatusText');
+
+    if (status === 'connected') {
+        titleEl.textContent = 'Sesi Berhasil Dibuat!';
+        subtitleEl.textContent = 'WhatsApp Anda telah terhubung dan siap digunakan untuk blast pesan';
+        statusEl.textContent = 'Terhubung';
+        statusEl.classList.remove('text-yellow-600');
+        statusEl.classList.add('text-green-600');
+    } else if (status === 'authenticated') {
+        titleEl.textContent = 'Sesi Berhasil Dibuat!';
+        subtitleEl.textContent = 'WhatsApp terverifikasi, menyelesaikan koneksi...';
+        statusEl.textContent = 'Terverifikasi';
+        statusEl.classList.remove('text-green-600');
+        statusEl.classList.add('text-yellow-600');
+    } else {
+        // Fallback
+        subtitleEl.textContent = 'Status: ' + status;
+        statusEl.textContent = status;
+        statusEl.classList.remove('text-green-600');
+        statusEl.classList.add('text-gray-600');
+    }
 }
 
 function updateStepIndicators() {
@@ -611,9 +636,10 @@ function startQRCodePolling() {
                 showQRCode(data.data.qr_code || data.data.qrCode);
             } else if (data.success && data.data.status === 'connected') {
                 showSuccess('WhatsApp berhasil terhubung!');
-                goToStep3();
+                goToStep3('connected');
             } else if (data.success && data.data.status === 'authenticated') {
-                updateQRStatus('Terverifikasi, menyelesaikan koneksi...', 'blue');
+                showSuccess('WhatsApp terverifikasi, menyelesaikan koneksi...');
+                goToStep3('authenticated');
             } else if (data.success && data.data.status === 'connecting') {
                 updateQRStatus('Menghubungkan...', 'yellow');
             }
@@ -643,7 +669,11 @@ function startQRCodePolling() {
             if (data.success && data.data.status === 'connected') {
                 showSuccess('WhatsApp berhasil terhubung!');
                 clearInterval(statusPollingInterval);
-                goToStep3();
+                goToStep3('connected');
+            } else if (data.success && data.data.status === 'authenticated') {
+                showSuccess('WhatsApp terverifikasi, menyelesaikan koneksi...');
+                clearInterval(statusPollingInterval);
+                goToStep3('authenticated');
             }
         })
         .catch(error => {

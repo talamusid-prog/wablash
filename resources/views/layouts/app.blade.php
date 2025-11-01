@@ -32,12 +32,7 @@
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         // Decode HTML entities in the message
-                        const message = '{{ session('success') }}'
-                            .replace(/&#039;/g, "'")
-                            .replace(/&quot;/g, '"')
-                            .replace(/&amp;/g, '&')
-                            .replace(/&lt;/g, '<')
-                            .replace(/&gt;/g, '>');
+                        const message = @json(session('success'));
                         
                         Swal.fire({
                             icon: 'success',
@@ -55,12 +50,7 @@
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         // Decode HTML entities in the message
-                        const message = '{{ session('error') }}'
-                            .replace(/&#039;/g, "'")
-                            .replace(/&quot;/g, '"')
-                            .replace(/&amp;/g, '&')
-                            .replace(/&lt;/g, '<')
-                            .replace(/&gt;/g, '>');
+                        const message = @json(session('error'));
                         
                         Swal.fire({
                             icon: 'error',
@@ -78,12 +68,7 @@
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         // Decode HTML entities in the message
-                        const message = '{{ session('warning') }}'
-                            .replace(/&#039;/g, "'")
-                            .replace(/&quot;/g, '"')
-                            .replace(/&amp;/g, '&')
-                            .replace(/&lt;/g, '<')
-                            .replace(/&gt;/g, '>');
+                        const message = @json(session('warning'));
                         
                         Swal.fire({
                             icon: 'warning',
@@ -101,12 +86,7 @@
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         // Decode HTML entities in the message
-                        const message = '{{ session('info') }}'
-                            .replace(/&#039;/g, "'")
-                            .replace(/&quot;/g, '"')
-                            .replace(/&amp;/g, '&')
-                            .replace(/&lt;/g, '<')
-                            .replace(/&gt;/g, '>');
+                        const message = @json(session('info'));
                         
                         Swal.fire({
                             icon: 'info',

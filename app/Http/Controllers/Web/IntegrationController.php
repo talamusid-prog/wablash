@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\WebhookConfig;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -45,7 +46,31 @@ class IntegrationController extends Controller
      */
     public function webhook()
     {
-        return view('integration.webhook');
+        try {
+            // Debug logging
+            \Log::info('🐛 Webhook page loaded');
+            
+            $webhookConfig = WebhookConfig::getCurrentConfig();
+            
+            \Log::info('🐛 Webhook config retrieved:', [
+                'exists' => $webhookConfig ? 'YES' : 'NO',
+                'url' => $webhookConfig->url ?? 'NULL',
+                'secret' => $webhookConfig->secret ?? 'NULL',
+                'enabled' => $webhookConfig->enabled ?? 'NULL',
+                'events' => $webhookConfig->events ?? 'NULL',
+                'is_new_instance' => !$webhookConfig->exists,
+                'updated_at' => $webhookConfig->updated_at ?? 'NULL'
+            ]);
+            
+            // Check database count
+            $dbCount = WebhookConfig::count();
+            \Log::info('🐛 Database webhook_configs count: ' . $dbCount);
+            
+            return view('integration.webhook', compact('webhookConfig'));
+        } catch (\Exception $e) {
+            \Log::error('🐛 Error loading webhook page: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**

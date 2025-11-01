@@ -7,11 +7,13 @@ use App\Models\WhatsAppSession;
 use App\Models\BlastCampaign;
 use App\Models\Phonebook;
 use App\Models\WhatsAppMessage;
+use App\Models\WebhookConfig;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class IntegrationController extends Controller
 {
@@ -338,18 +340,26 @@ class IntegrationController extends Controller
      */
     public function getWebhookConfig(): JsonResponse
     {
-        // This would typically read from database or config
-        $webhookConfig = [
-            'enabled' => config('app.webhook_enabled', false),
-            'url' => config('app.webhook_url', ''),
-            'events' => config('app.webhook_events', []),
-            'secret' => config('app.webhook_secret', '')
-        ];
-
-        return response()->json([
-            'success' => true,
-            'data' => $webhookConfig
-        ]);
+        try {
+            $webhookConfig = WebhookConfig::getCurrentConfig();
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'enabled' => $webhookConfig->enabled,
+                    'url' => $webhookConfig->url,
+                    'events' => $webhookConfig->events,
+                    'secret' => $webhookConfig->secret
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting webhook config', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting webhook config: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -365,26 +375,83 @@ class IntegrationController extends Controller
         ]);
 
         try {
-            // This would typically save to database or config
-            // For now, we'll just return success
-            $webhookConfig = [
+            Log::info('🐛 API setWebhookConfig called', [
+                'request_data' => $request->all()
+            ]);
+            
+            // Save to database
+            $configData = [
                 'enabled' => $request->enabled,
-                'url' => $request->url,
+                'url' => $request->url ?? '',
                 'events' => $request->events ?? [],
-                'secret' => $request->secret
+                'secret' => $request->secret ?? ''
             ];
+            
+            Log::info('🐛 Saving config to database', $configData);
+            
+            $webhookConfig = WebhookConfig::updateConfig($configData);
+            
+            Log::info('🐛 Config saved successfully', [
+                'id' => $webhookConfig->id,
+                'enabled' => $webhookConfig->enabled,
+                'url' => $webhookConfig->url,
+                'updated_at' => $webhookConfig->updated_at
+            ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Webhook configuration updated successfully',
-                'data' => $webhookConfig
+                'data' => [
+                    'enabled' => $webhookConfig->enabled,
+                    'url' => $webhookConfig->url,
+                    'events' => $webhookConfig->events,
+                    'secret' => $webhookConfig->secret
+                ]
             ]);
         } catch (\Exception $e) {
-            Log::error('Error setting webhook config', ['error' => $e->getMessage()]);
+            Log::error('🐛 Error setting webhook config', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             
             return response()->json([
                 'success' => false,
                 'message' => 'Error setting webhook config: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Debug webhook endpoint - untuk testing koneksi API
+     */
+    public function debugWebhook(Request $request): JsonResponse
+    {
+        try {
+            Log::info('🔧 Debug webhook endpoint called', [
+                'method' => $request->getMethod(),
+                'headers' => $request->headers->all(),
+                'body' => $request->all(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Debug webhook endpoint working correctly',
+                'data' => [
+                    'received_data' => $request->all(),
+                    'method' => $request->getMethod(),
+                    'timestamp' => now()->toISOString(),
+                    'server_time' => date('Y-m-d H:i:s')
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('🔧 Error in debug webhook endpoint', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Debug webhook endpoint error: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -395,32 +462,48 @@ class IntegrationController extends Controller
     public function testWebhook(): JsonResponse
     {
         try {
-            $webhookUrl = config('app.webhook_url', '');
+            $webhookConfig = WebhookConfig::getCurrentConfig();
             
-            if (empty($webhookUrl)) {
+            if (empty($webhookConfig->url) || !$webhookConfig->enabled) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Webhook URL not configured'
+                    'message' => 'Webhook URL not configured or webhook disabled'
                 ], 400);
             }
 
             // Send test webhook
             $testData = [
-                'event' => 'test',
+                'event' => 'webhook.test',
                 'timestamp' => now()->toISOString(),
                 'data' => [
-                    'message' => 'This is a test webhook from WA Blast API'
+                    'message' => 'This is a test webhook event from WA Blast',
+                    'test' => true
                 ]
             ];
 
-            // Here you would actually send the webhook
-            // For now, we'll just return success
+            // Send actual HTTP request to webhook URL
+            $response = Http::timeout(30)->post($webhookConfig->url, $testData);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Test webhook sent successfully',
-                'data' => $testData
-            ]);
+            if ($response->successful()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Test webhook sent successfully',
+                    'data' => [
+                        'event' => $testData,
+                        'response_status' => $response->status(),
+                        'response_body' => $response->json() ?? $response->body()
+                    ]
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Webhook test failed',
+                    'data' => [
+                        'status' => $response->status(),
+                        'body' => $response->body()
+                    ]
+                ], 400);
+            }
         } catch (\Exception $e) {
             Log::error('Error testing webhook', ['error' => $e->getMessage()]);
             
